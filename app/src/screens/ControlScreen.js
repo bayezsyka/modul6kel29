@@ -9,8 +9,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { PanGestureHandler, State } from "react-native-gesture-handler";
 import { useNavigation } from "@react-navigation/native";
+import { useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 
 export default function ControlScreen() {
@@ -20,28 +22,62 @@ export default function ControlScreen() {
   const [loading, setLoading] = useState(false);
   const [currentThreshold, setCurrentThreshold] = useState(null);
 
+  useFocusEffect(
+    useCallback(() => {
+      if (!isLoggedIn) {
+        Alert.alert(
+          "Perlu login",
+          "Silakan login terlebih dahulu untuk membuka halaman Control."
+        );
+        navigation.navigate("Monitoring");
+      }
+    }, [isLoggedIn, navigation])
+  );
+
   useEffect(() => {
     async function loadCurrentThreshold() {
       try {
-        const response = await fetch(`${backendUrl}/api/threshold`);
+        setLoading(true);
+        const response = await fetch(`${backendUrl}/api/threshold`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.status === 401) {
+          Alert.alert(
+            "Tidak terautentikasi",
+            "Sesi login tidak valid. Silakan login ulang."
+          );
+          return;
+        }
+
         const data = await response.json();
         if (data && data.value != null) {
           setCurrentThreshold(String(data.value));
         }
       } catch (error) {
         console.error("Gagal memuat threshold", error);
+        Alert.alert("Error", "Gagal memuat data threshold.");
+      } finally {
+        setLoading(false);
       }
     }
 
-    loadCurrentThreshold();
-  }, [backendUrl]);
+    if (isLoggedIn && token) {
+      loadCurrentThreshold();
+    } else {
+      setCurrentThreshold(null);
+    }
+  }, [backendUrl, isLoggedIn, token]);
 
   async function submitThreshold() {
-    if (!isLoggedIn) {
+    if (!isLoggedIn || !token) {
       Alert.alert(
         "Perlu login",
         "Silakan login terlebih dahulu untuk mengubah threshold."
       );
+      navigation.navigate("Monitoring");
       return;
     }
 
