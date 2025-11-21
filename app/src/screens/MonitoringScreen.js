@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   StyleSheet,
   Text,
@@ -14,7 +15,7 @@ import { useAuth } from "../context/AuthContext";
 
 export default function MonitoringScreen() {
   const navigation = useNavigation();
-  const { backendUrl } = useAuth();
+  const { backendUrl, isLoggedIn } = useAuth();
   const [readings, setReadings] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -71,6 +72,14 @@ export default function MonitoringScreen() {
       const { translationX } = event.nativeEvent;
       // Geser ke kiri pindah ke halaman Control
       if (translationX < -50) {
+        if (!isLoggedIn) {
+          Alert.alert(
+            "Perlu login",
+            "Silakan login terlebih dahulu untuk membuka halaman Control."
+          );
+          return;
+        }
+
         navigation.navigate("Control");
       }
     }
